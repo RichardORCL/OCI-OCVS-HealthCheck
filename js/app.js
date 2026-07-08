@@ -571,6 +571,90 @@
     body.appendChild(actions);
   }
 
+  /* Full page for editors listing all feedback across the whole checklist,
+     grouped by checklist item (reachable via #/feedback). */
+  function renderFeedbackPage() {
+    var content = document.getElementById("content");
+    content.innerHTML = "";
+
+    var header = el("div", "page-header");
+    header.appendChild(el("h1", "", "Feedback"));
+    header.appendChild(el("p", "",
+      "All feedback left by users of this health check, grouped by checklist item. " +
+      "Only visible in editor mode."));
+    content.appendChild(header);
+
+    var list = el("div", "feedback-page-list");
+    var emptyMsg = el("p", "feedback-empty", "No feedback has been left yet.");
+
+    function refreshEmptyState() {
+      var hasEntries = list.querySelector(".feedback-entry") !== null;
+      emptyMsg.hidden = hasEntries;
+    }
+
+    function fill() {
+      list.innerHTML = "";
+      Object.keys(feedbackData || {}).forEach(function (itemId) {
+        var entries = feedbackData[itemId] || [];
+        if (!entries.length) return;
+
+        var ref = findItemRef(itemId);
+        var card = el("div", "card");
+        var group = el("div", "card-body feedback-group");
+
+        var refEl = el("div", "feedback-item-ref");
+        if (ref) {
+          var link = el("a", "", ref.cat.title + " \u203a " + (ref.item.num ? ref.item.num + " " : "") + ref.item.label);
+          link.href = "#/" + ref.cat.route;
+          refEl.appendChild(link);
+        } else {
+          refEl.textContent = "(item no longer in the checklist)";
+        }
+        group.appendChild(refEl);
+
+        entries.slice().forEach(function (entry) {
+          var entryEl = el("div", "feedback-entry");
+          var head = el("div", "feedback-entry-head");
+          var when = "";
+          try { when = new Date(entry.at).toLocaleString(); } catch (e) { when = entry.at || ""; }
+          head.appendChild(el("div", "feedback-when", when));
+          if (entry.id) {
+            head.appendChild(iconBtn("edit-btn danger feedback-delete", EDIT_ICONS.remove, "Delete feedback", function () {
+              if (!confirm("Delete this feedback entry? This cannot be undone.")) return;
+              deleteFeedback(itemId, entry.id).then(function () {
+                feedbackData[itemId] = (feedbackData[itemId] || []).filter(function (e) {
+                  return e.id !== entry.id;
+                });
+                if (!feedbackData[itemId].length) delete feedbackData[itemId];
+                entryEl.remove();
+                if (!group.querySelector(".feedback-entry")) card.remove();
+                refreshEmptyState();
+              }).catch(function (err) {
+                alert("Could not delete feedback (" + (err.message || err) + ").");
+              });
+            }));
+          }
+          entryEl.appendChild(head);
+          entryEl.appendChild(el("div", "feedback-text", entry.text));
+          group.appendChild(entryEl);
+        });
+
+        card.appendChild(group);
+        list.appendChild(card);
+      });
+      refreshEmptyState();
+    }
+
+    content.appendChild(list);
+    content.appendChild(emptyMsg);
+
+    // Render what we have, then refresh from the server for the latest entries.
+    fill();
+    loadFeedback().then(function () {
+      if (currentRoute() === "feedback") fill();
+    });
+  }
+
   /* --------------------------- Checklist item ------------------------- */
 
   var dragId = null; // id of the item currently being dragged
@@ -1372,6 +1456,7 @@
     var toggleItem = document.getElementById("menu-editor-toggle");
     toggleItem.childNodes[toggleItem.childNodes.length - 1].textContent =
       editorEnabled ? " Disable editor" : " Enable editor";
+    document.getElementById("menu-editor-feedback").hidden = !editorEnabled;
     document.getElementById("menu-editor-download").hidden = !editorEnabled;
     document.getElementById("menu-editor-import").hidden = !editorEnabled;
   }
@@ -1457,6 +1542,12 @@
       else openEditorModal();
     });
 
+    document.getElementById("menu-editor-feedback").addEventListener("click", function () {
+      closeMenu();
+      if (currentRoute() === "feedback") route(); // already there: refresh
+      else window.location.hash = "#/feedback";
+    });
+
     document.getElementById("menu-editor-download").addEventListener("click", function () {
       closeMenu();
       downloadJson(
@@ -1486,6 +1577,8 @@
     renderTopbarProgress();
     if (cat) {
       renderCategoryPage(cat);
+    } else if (r === "feedback" && editorEnabled) {
+      renderFeedbackPage();
     } else {
       if (r !== "") window.location.hash = "#/";
       renderOverviewPage();

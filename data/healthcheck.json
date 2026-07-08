@@ -1,4 +1,5 @@
 {
+  "exportedAt": "2026-07-08T18:50:07.890Z",
   "categories": [
     {
       "id": "inventory",
@@ -62,18 +63,6 @@
               "id": "itm-mrc7h0xz-ud0aa",
               "label": "Is OCVS (vCenter, ESXi, NSX, HCX) on the latest versions? If not, what version are they on and what is the upgrade plan?",
               "num": "i."
-            },
-            {
-              "id": "itm-mrcg6y3j-1vi8u",
-              "label": "Has an VMware update Download Token been requested and configured in vcenter? (for license included environments download token can be requested via an OCI Support Request ticket)",
-              "num": "ii.",
-              "links": [
-                {
-                  "text": "https://blogs.vmware.com/cloudprovider/2025/03/new-vmware-software-download-guidelines-key-changes-broadcom-partners-should-know.html",
-                  "url": "https://blogs.vmware.com/cloudprovider/2025/03/new-vmware-software-download-guidelines-key-changes-broadcom-partners-should-know.html"
-                }
-              ],
-              "description": "Check by going to the vcenter appliance management page on port 5480. Go to update section and click on settings. The configured repo should have an unique token in the URL, example: https://vapp-updates.vmware.com/vai-catalog/valm/vmw/[unique_token]/version.latest/"
             }
           ]
         }
@@ -525,31 +514,17 @@
       "route": "security",
       "title": "Security",
       "short": "Security",
-      "description": "IAM policies and compartment access for the OCVS environment and components.",
+      "description": "IAM policies and compartment access for the OCVS environment.",
       "items": [
         {
           "id": "sec-a",
           "num": "a.",
-          "label": "OCVS Service Access",
-          "children": [
-            {
-              "id": "itm-mrcfojxr-1hk0u",
-              "label": "who has “use” permissions (add/remove OCVS/ESXi nodes) in the OCVS compartment?",
-              "num": "i."
-            }
-          ]
+          "label": "OCVS Policies; who has “use” permissions (add/remove OCVS/ESXi nodes) in the OCVS compartment?"
         },
         {
           "id": "sec-b",
           "num": "b.",
-          "label": "Network Access",
-          "children": [
-            {
-              "id": "itm-mrcfp8td-hll7f",
-              "label": "If VCN/VLAN is in a separate compartment, who has access to this?",
-              "num": "i."
-            }
-          ]
+          "label": "If VCN/VLAN is in a separate compartment, who has access to this?"
         }
       ]
     }
