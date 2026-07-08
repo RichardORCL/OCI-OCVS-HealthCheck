@@ -10,7 +10,7 @@ Serves the static site and persists shared data:
   data/feedback.json itself is never served, so feedback stays invisible
   to regular users.
 
-Usage:  python server.py [port]      (default port 8080)
+Usage:  python server.py [port] [host]      (default port 8080, host 0.0.0.0)
 """
 
 import hashlib
@@ -245,8 +245,9 @@ def purge_idless_feedback():
 def main():
     purge_idless_feedback()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    print(f"OCVS Health Check serving on http://0.0.0.0:{port} (Ctrl+C to stop)")
+    host = sys.argv[2] if len(sys.argv) > 2 else "0.0.0.0"
+    server = ThreadingHTTPServer((host, port), Handler)
+    print(f"OCVS Health Check serving on http://{host}:{port} (Ctrl+C to stop)")
     server.serve_forever()
 
 

@@ -16,6 +16,9 @@ img/
 # Exported results / local backups
 *.export.json
 
+# Machine-specific installer configuration (copy of deploy/install.conf.example)
+deploy/install.conf
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

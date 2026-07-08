@@ -21,6 +21,26 @@ netsh advfirewall firewall add rule name="OCVS Health Check (HTTP 8080)" dir=in 
 
 Other machines can then browse to `http://<this-machine's-IP>:8080`. Note that statuses, comments and checklist edits are stored per browser (localStorage), so every visitor has their own working copy - use Export/Import from the hamburger menu to hand results over.
 
+## Production deployment (Ubuntu 24.04)
+
+The `deploy/` directory contains an installer that sets the tool up as a proper service with HTTPS:
+
+- runs `server.py` as a hardened systemd service (`ocvs-healthcheck`) under a dedicated system user, listening on localhost only
+- installs nginx as a reverse proxy that does the SSL offloading
+- obtains a Let's Encrypt certificate for your domain via certbot (auto-renewal included) and redirects HTTP to HTTPS
+- opens ports 443 and 80 in ufw (enabling ufw with SSH allowed if it was inactive)
+
+On the Ubuntu server, from a checkout of this repository:
+
+```bash
+cd deploy
+cp install.conf.example install.conf
+nano install.conf        # set DOMAIN and LETSENCRYPT_EMAIL
+sudo bash install.sh
+```
+
+The domain must already have a public DNS record pointing at the server, otherwise the Let's Encrypt challenge fails (set `SKIP_CERTBOT="yes"` in `install.conf` for an HTTP-only dry run). The app is installed to `/opt/ocvs-healthcheck`; live data lives in `/opt/ocvs-healthcheck/data` and is preserved when the installer is re-run to deploy updates.
+
 ## Features
 
 - One page per category (OCVS Inventory, Networking, Storage, Troubleshooting Processes, OCI Monitoring / Management Integration, Security), reachable via the navigation bar under the header.
@@ -51,6 +71,7 @@ The default password is `ocvs-editor`. To change it, compute the SHA-256 hex dig
 - `data/healthcheck.json` - the health check checklist definition (categories and items)
 - `js/app.js` - data loading, hash router, rendering, persistence, export/import, editor mode
 - `server.py` - serves the site and saves checklist edits (POST `/api/checklist`)
+- `deploy/` - Ubuntu 24.04 installer (`install.sh` + `install.conf.example`): systemd service, nginx SSL offloading, Let's Encrypt, firewall
 
 No build step or dependencies required (Python 3 for the server).
 # OCI-OCVS-HealthCheck
