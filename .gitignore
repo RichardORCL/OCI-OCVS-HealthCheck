@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# User-submitted feedback (private by design; never publish)
+data/feedback.json
+
+# Atomic-write temp files created by server.py
+data/*.json.tmp
+
+# Console screenshots from a live tenancy (design references only, not used by the app)
+img/
+
+# Exported results / local backups
+*.export.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+.idea/
+.vscode/

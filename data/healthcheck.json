@@ -1,0 +1,557 @@
+{
+  "categories": [
+    {
+      "id": "inventory",
+      "route": "inventory",
+      "title": "OCVS Inventory",
+      "short": "Inventory",
+      "description": "Inventory of the OCVS environments, versions, shapes, licensing and commitments.",
+      "items": [
+        {
+          "id": "inv-a",
+          "num": "a.",
+          "label": "Inventory of all OCVS environments and ESXi nodes",
+          "children": [
+            {
+              "id": "inv-a-ii",
+              "num": "i.",
+              "label": "Compute shape",
+              "children": []
+            },
+            {
+              "id": "itm-mrc7it9w-fpbe2",
+              "label": "Number of clusters",
+              "num": "ii."
+            },
+            {
+              "id": "itm-mrc7j3dk-ro8t5",
+              "label": "Number of hosts",
+              "num": "iii."
+            },
+            {
+              "id": "itm-mrc7jbaq-8h4yn",
+              "label": "Location of ESXi nodes (Regions, ADs, FDs)",
+              "num": "iv."
+            }
+          ]
+        },
+        {
+          "id": "itm-mrc7jkoi-bcrjl",
+          "label": "License Model",
+          "num": "b.",
+          "children": [
+            {
+              "id": "itm-mrc7jrh0-9k5tr",
+              "label": "If on License included, what is end-date and plan for the environment?",
+              "num": "i.",
+              "children": []
+            },
+            {
+              "id": "itm-mrc7knis-ku8rz",
+              "label": "Commitment terms, if present, what are the end dates?",
+              "num": "ii."
+            }
+          ]
+        },
+        {
+          "id": "inv-b",
+          "num": "c.",
+          "label": "OCVS Software",
+          "children": [
+            {
+              "id": "itm-mrc7h0xz-ud0aa",
+              "label": "Is OCVS (vCenter, ESXi, NSX, HCX) on the latest versions? If not, what version are they on and what is the upgrade plan?",
+              "num": "i."
+            },
+            {
+              "id": "itm-mrcg6y3j-1vi8u",
+              "label": "Has an VMware update Download Token been requested and configured in vcenter? (for license included environments download token can be requested via an OCI Support Request ticket)",
+              "num": "ii.",
+              "links": [
+                {
+                  "text": "https://blogs.vmware.com/cloudprovider/2025/03/new-vmware-software-download-guidelines-key-changes-broadcom-partners-should-know.html",
+                  "url": "https://blogs.vmware.com/cloudprovider/2025/03/new-vmware-software-download-guidelines-key-changes-broadcom-partners-should-know.html"
+                }
+              ],
+              "description": "Check by going to the vcenter appliance management page on port 5480. Go to update section and click on settings. The configured repo should have an unique token in the URL, example: https://vapp-updates.vmware.com/vai-catalog/valm/vmw/[unique_token]/version.latest/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "networking",
+      "route": "networking",
+      "title": "Networking",
+      "short": "Networking",
+      "description": "Network topology, VLAN configuration and management, and NSX sizing.",
+      "items": [
+        {
+          "id": "net-a",
+          "num": "a.",
+          "label": "Is a full network diagram available for the environment?"
+        },
+        {
+          "id": "net-b",
+          "num": "b.",
+          "label": "Check compartment(s) where the VLANs reside, are these in the same location as the VCN? If not, possibly decreased visibility"
+        },
+        {
+          "id": "net-c",
+          "num": "c.",
+          "label": "Check for additional VLANs",
+          "children": [
+            {
+              "id": "net-c-i",
+              "num": "i.",
+              "label": "Equally assigned to ESX nodes"
+            },
+            {
+              "id": "net-c-ii",
+              "num": "ii.",
+              "label": "How are additional VLANs being managed, especially in case of Host add / replace"
+            },
+            {
+              "id": "net-c-iii",
+              "num": "iii.",
+              "label": "How are IP addresses managed in the VLAN?",
+              "children": [
+                {
+                  "id": "net-c-iii-1",
+                  "num": "1.",
+                  "label": "Are any external access IPs defined on the VLAN? If not, why not?"
+                }
+              ]
+            },
+            {
+              "id": "net-c-iv",
+              "num": "iv.",
+              "label": "Where is VLAN traffic being routed to?"
+            },
+            {
+              "id": "net-c-v",
+              "num": "v.",
+              "label": "How open are the NSGs on the additional VLANs"
+            }
+          ]
+        },
+        {
+          "id": "net-d",
+          "num": "d.",
+          "label": "NSX Sizing; are the NSX Managers and Edge nodes running at default size, and does that match the size/utilization of the environment?",
+          "tables": [
+            {
+              "title": "NSX Manager VM",
+              "headers": [
+                "Size",
+                "vCPU",
+                "Memory"
+              ],
+              "rows": [
+                [
+                  "Small",
+                  "4 vCPU",
+                  "16 GB"
+                ],
+                [
+                  "Medium",
+                  "6 vCPU",
+                  "24 GB"
+                ],
+                [
+                  "Large",
+                  "12 vCPU",
+                  "48 GB"
+                ],
+                [
+                  "XL",
+                  "24 vCPU",
+                  "96 GB"
+                ]
+              ]
+            },
+            {
+              "title": "NSX Edge VM",
+              "headers": [
+                "Size",
+                "vCPU",
+                "Memory"
+              ],
+              "rows": [
+                [
+                  "Small",
+                  "2 vCPU",
+                  "4 GB"
+                ],
+                [
+                  "Medium",
+                  "4 vCPU",
+                  "8 GB"
+                ],
+                [
+                  "Large",
+                  "8 vCPU",
+                  "32 GB"
+                ],
+                [
+                  "XL",
+                  "16 vCPU",
+                  "64 GB"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "itm-mrbxilg6-8xaq6",
+          "label": "Is uplink2 used as seperate edge for DMZ?",
+          "num": "e.",
+          "links": [
+            {
+              "text": "Guide to Deploy a DMZ on NSX-T",
+              "url": "https://blogs.oracle.com/cloud-infrastructure/a-detailed-guide-to-deploy-a-dmz-on-nsx-t-for-oracle-cloud-vmware-solution"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "route": "storage",
+      "title": "Storage",
+      "short": "Storage",
+      "description": "VSAN health, Block Volume inventory and management, and backup of the OCVS stack and VMs.",
+      "items": [
+        {
+          "id": "sto-a",
+          "num": "a.",
+          "label": "VSAN Based environments",
+          "children": [
+            {
+              "id": "sto-a-i",
+              "num": "i.",
+              "label": "VSAN fault domain matching OCI FDs or ADs"
+            },
+            {
+              "id": "sto-a-ii",
+              "num": "ii.",
+              "label": "Equal balance?"
+            },
+            {
+              "id": "sto-a-iii",
+              "num": "iii.",
+              "label": "Current storage usage of VSAN? Is there enough capacity in case of fault domain failure?"
+            },
+            {
+              "id": "sto-a-iv",
+              "num": "iv.",
+              "label": "If other than RAID-1 storage policy is being used, how does this match fault domains?"
+            }
+          ]
+        },
+        {
+          "id": "sto-b",
+          "num": "b.",
+          "label": "Block Volumes",
+          "children": [
+            {
+              "id": "sto-b-i",
+              "num": "i.",
+              "label": "Inventory of block volumes",
+              "children": [
+                {
+                  "id": "sto-b-i-1",
+                  "num": "1.",
+                  "label": "Size per volume, is there good balance across multiple volumes?"
+                },
+                {
+                  "id": "sto-b-i-2",
+                  "num": "2.",
+                  "label": "How is the used VMFS storage space vs the size of the Block Volume?"
+                },
+                {
+                  "id": "sto-b-i-3",
+                  "num": "3.",
+                  "label": "VPU; does the VPU setting make sense?"
+                }
+              ]
+            },
+            {
+              "id": "sto-b-ii",
+              "num": "ii.",
+              "label": "How are block volumes managed? (Manual, custom terraform, OCVS Datastore management)"
+            },
+            {
+              "id": "sto-b-iii",
+              "num": "iii.",
+              "label": "Is block volume backup or replication turned on? Does customer understand this is officially not supported with OCVS?"
+            }
+          ]
+        },
+        {
+          "id": "sto-c",
+          "num": "c.",
+          "label": "Backup",
+          "children": [
+            {
+              "id": "sto-c-i",
+              "num": "i.",
+              "label": "OCVS Management stack",
+              "children": [
+                {
+                  "id": "sto-c-i-1",
+                  "num": "1.",
+                  "label": "vCenter: How is backup of vCenter server managed?",
+                  "children": [
+                    {
+                      "id": "sto-c-i-1-a",
+                      "num": "a.",
+                      "label": "Is backup configured on the vCenter appliance?",
+                      "links": [
+                        {
+                          "text": "https://vcenter:5480",
+                          "url": "https://vcenter:5480"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "sto-c-i-1-b",
+                      "num": "b.",
+                      "label": "Is vCenter protected by a 3rd party backup solution?"
+                    }
+                  ]
+                },
+                {
+                  "id": "sto-c-i-2",
+                  "num": "2.",
+                  "label": "NSX: Is SFTP backup of NSX configuration configured, and if so, where is this stored?"
+                }
+              ]
+            },
+            {
+              "id": "sto-c-ii",
+              "num": "ii.",
+              "label": "VM Backup",
+              "children": [
+                {
+                  "id": "sto-c-ii-1",
+                  "num": "1.",
+                  "label": "What backup product is used to protect the VMs on OCVS?"
+                },
+                {
+                  "id": "sto-c-ii-2",
+                  "num": "2.",
+                  "label": "Where are these backups stored?",
+                  "children": [
+                    {
+                      "id": "sto-c-ii-2-a",
+                      "num": "a.",
+                      "label": "If on OCI Object Storage, in what region? If in same region, is it also replicated to another region?"
+                    },
+                    {
+                      "id": "sto-c-ii-2-b",
+                      "num": "b.",
+                      "label": "What network is being used for transferring the backup data? If not VLAN, has this been considered to offload NSX load?"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "route": "troubleshooting",
+      "title": "Troubleshooting Processes",
+      "short": "Troubleshooting",
+      "description": "Customer access to vCenter and ESXi, password expiration, and Oracle support processes.",
+      "items": [
+        {
+          "id": "tro-a",
+          "num": "a.",
+          "label": "Can customer login to vCenter?",
+          "children": [
+            {
+              "id": "tro-a-i",
+              "num": "i.",
+              "label": "Root user to the vCenter appliance management interface",
+              "links": [
+                {
+                  "text": "https://vcenter_FQDN:5480",
+                  "url": "https://vcenter_FQDN:5480"
+                }
+              ]
+            },
+            {
+              "id": "tro-a-ii",
+              "num": "ii.",
+              "label": "SSH access to vCenter",
+              "commands": [
+                "ssh root@vcenter_FQDN"
+              ]
+            },
+            {
+              "id": "tro-a-iii",
+              "num": "iii.",
+              "label": "What is password expiration set to?",
+              "commands": [
+                "chage -l root  (on vCenter console)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tro-b",
+          "num": "b.",
+          "label": "Is customer able to directly login to ESXi for troubleshooting?",
+          "children": [
+            {
+              "id": "tro-b-i",
+              "num": "i.",
+              "label": "ESX Web access as user OPC (Has the OPC user password been changed, how is it managed?)"
+            },
+            {
+              "id": "tro-b-ii",
+              "num": "ii.",
+              "label": "SSH Access (Who has the SSH keys for OCVS?)",
+              "children": [
+                {
+                  "id": "tro-b-ii-1",
+                  "num": "1.",
+                  "label": "SSH into an ESXi host",
+                  "commands": [
+                    "ssh -i key opc@esx_ip"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tro-c",
+          "num": "c.",
+          "label": "Is customer aware of the Replace Host functionality?",
+          "links": [
+            {
+              "text": "Replace host procedure",
+              "url": "https://docs.oracle.com/en/learn/replace-ocvs-esxi-host/index.html"
+            }
+          ]
+        },
+        {
+          "id": "tro-d",
+          "num": "d.",
+          "label": "Can the OCVS admin create Oracle Support tickets? (Or know what the process is to get a support ticket generated)"
+        }
+      ]
+    },
+    {
+      "id": "monitoring",
+      "route": "monitoring",
+      "title": "OCI Monitoring / Management Integration",
+      "short": "Monitoring",
+      "description": "Notifications, the OCVS Management appliance, Log Analytics and vCenter alarm integration.",
+      "items": [
+        {
+          "id": "mon-a",
+          "num": "a.",
+          "label": "Are notifications for OCVS set up?",
+          "children": [
+            {
+              "id": "mon-a-i",
+              "num": "i.",
+              "label": "What is the topic setup and who is subscribed?"
+            }
+          ]
+        },
+        {
+          "id": "mon-b",
+          "num": "b.",
+          "label": "Is the OCVS Management appliance installed and configured?",
+          "links": [
+            {
+              "text": "OCVS Management Appliance documentation",
+              "url": "https://docs.oracle.com/en-us/iaas/Content/VMware/Tasks/ocvs-management-app.htm"
+            }
+          ]
+        },
+        {
+          "id": "mon-c",
+          "num": "c.",
+          "label": "Is Log Analytics configured to monitor critical OCVS alarms?",
+          "links": [
+            {
+              "text": "VMware Monitoring Solution in Log Analytics",
+              "url": "https://docs.oracle.com/en-us/iaas/log-analytics/doc/vmware-monitoring-solution.html"
+            }
+          ]
+        },
+        {
+          "id": "mon-d",
+          "num": "d.",
+          "label": "Are critical vCenter alarms being monitored?",
+          "children": [
+            {
+              "id": "mon-d-i",
+              "num": "i.",
+              "label": "Is customer aware this can be integrated with OCI Notifications?",
+              "links": [
+                {
+                  "text": "vCenter to OCI Notifications (oracle-devrel on GitHub)",
+                  "url": "https://github.com/oracle-devrel/technology-engineering/tree/main/cloud-infrastructure/virtualization-solutions/oracle-cloud-vmware-solution/vcenter-to-oci-notifications/files"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "itm-mrcf4u72-pw4rt",
+          "label": "Are possible maintenance events monitored? (Via notifications?)",
+          "num": "e.",
+          "links": [
+            {
+              "text": "Infrastructure Health Metrics",
+              "url": "https://docs.oracle.com/en-us/iaas/Content/Compute/References/infrastructurehealthmetrics.htm"
+            }
+          ],
+          "description": "oci_compute_infrastructure_health being monitored for OCVS compartment"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "route": "security",
+      "title": "Security",
+      "short": "Security",
+      "description": "IAM policies and compartment access for the OCVS environment and components.",
+      "items": [
+        {
+          "id": "sec-a",
+          "num": "a.",
+          "label": "OCVS Service Access",
+          "children": [
+            {
+              "id": "itm-mrcfojxr-1hk0u",
+              "label": "who has “use” permissions (add/remove OCVS/ESXi nodes) in the OCVS compartment?",
+              "num": "i."
+            }
+          ]
+        },
+        {
+          "id": "sec-b",
+          "num": "b.",
+          "label": "Network Access",
+          "children": [
+            {
+              "id": "itm-mrcfp8td-hll7f",
+              "label": "If VCN/VLAN is in a separate compartment, who has access to this?",
+              "num": "i."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
