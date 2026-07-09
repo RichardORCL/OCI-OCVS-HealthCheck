@@ -19,6 +19,9 @@ img/
 # Machine-specific installer configuration (copy of deploy/install.conf.example)
 deploy/install.conf
 
+# Local server configuration (copy of config.json.example)
+config.json
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
