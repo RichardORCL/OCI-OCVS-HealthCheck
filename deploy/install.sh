@@ -8,6 +8,11 @@
 #   1. Copy install.conf.example to install.conf and edit DOMAIN/EMAIL.
 #   2. Run:  sudo ./install.sh
 #
+# To pull the latest code from git, sync it to the install directory and
+# restart the app service without re-running the full installer:
+#
+#   sudo ./install.sh -update
+#
 # The script is idempotent: re-running it updates the app files and
 # configuration in place.
 
@@ -16,6 +21,15 @@ set -euo pipefail
 # --------------------------------------------------------------------------
 # Configuration
 # --------------------------------------------------------------------------
+
+UPDATE_MODE="no"
+
+for arg in "$@"; do
+    case "$arg" in
+        -update) UPDATE_MODE="yes" ;;
+        *) echo "ERROR: unknown option: $arg" >&2; echo "Usage: sudo ./install.sh [-update]" >&2; exit 1 ;;
+    esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
@@ -43,6 +57,50 @@ fail() { echo "ERROR: $*" >&2; exit 1; }
 info() { echo -e "\n==> $*"; }
 
 [[ $EUID -eq 0 ]] || fail "run as root (sudo ./install.sh)"
+
+sync_app_files() {
+    info "Installing application to $INSTALL_DIR"
+    if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
+        useradd --system --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin "$SERVICE_USER"
+    fi
+
+    mkdir -p "$INSTALL_DIR"
+    rsync -a --delete \
+        --exclude 'deploy/' \
+        --exclude '.git/' \
+        --exclude '__pycache__/' \
+        --exclude 'img/' \
+        --exclude 'config.json' \
+        --exclude 'data/feedback.json' \
+        --exclude 'data/healthcheck.json' \
+        "$REPO_DIR/" "$INSTALL_DIR/"
+
+    # Seed local files on first install only - they hold live data afterwards.
+    mkdir -p "$INSTALL_DIR/data"
+    [[ -f "$INSTALL_DIR/config.json" ]] || cp "$REPO_DIR/config.json.example" "$INSTALL_DIR/config.json"
+    [[ -f "$INSTALL_DIR/data/healthcheck.json" ]] || cp "$REPO_DIR/data/healthcheck.json" "$INSTALL_DIR/data/"
+    [[ -f "$INSTALL_DIR/data/feedback.json"    ]] || echo '{}' > "$INSTALL_DIR/data/feedback.json"
+
+    # Code read-only, data/ writable by the service user.
+    chown -R root:root "$INSTALL_DIR"
+    chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/data"
+    chmod 750 "$INSTALL_DIR/data"
+}
+
+if [[ "$UPDATE_MODE" == "yes" ]]; then
+    info "Update mode: git pull, sync application files and restart $SERVICE_NAME"
+    command -v git >/dev/null 2>&1 || fail "git is not installed (install it or re-run ./install.sh to add git)"
+    [[ -d "$REPO_DIR/.git" ]] || fail "$REPO_DIR is not a git repository"
+    systemctl list-unit-files "$SERVICE_NAME.service" --no-legend 2>/dev/null | grep -q . \
+        || fail "$SERVICE_NAME is not installed; run ./install.sh without -update first"
+    git -C "$REPO_DIR" pull --ff-only
+    sync_app_files
+    systemctl restart "$SERVICE_NAME"
+    info "Update complete."
+    systemctl --no-pager --lines 0 status "$SERVICE_NAME" || true
+    exit 0
+fi
+
 [[ -n "$DOMAIN" && "$DOMAIN" != *"example.com"* ]] \
     || fail "set DOMAIN in install.conf to your real domain name"
 if [[ "$SKIP_CERTBOT" != "yes" ]]; then
@@ -54,39 +112,16 @@ fi
 # Packages
 # --------------------------------------------------------------------------
 
-info "Installing packages (nginx, certbot, python3, ufw, rsync)"
+info "Installing packages (nginx, certbot, python3, ufw, rsync, git)"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq nginx certbot python3-certbot-nginx python3 ufw rsync
+apt-get install -y -qq nginx certbot python3-certbot-nginx python3 ufw rsync git
 
 # --------------------------------------------------------------------------
 # Application files and service user
 # --------------------------------------------------------------------------
 
-info "Installing application to $INSTALL_DIR"
-if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
-    useradd --system --home-dir "$INSTALL_DIR" --shell /usr/sbin/nologin "$SERVICE_USER"
-fi
-
-mkdir -p "$INSTALL_DIR"
-rsync -a --delete \
-    --exclude 'deploy/' \
-    --exclude '.git/' \
-    --exclude '__pycache__/' \
-    --exclude 'img/' \
-    --exclude 'data/feedback.json' \
-    --exclude 'data/healthcheck.json' \
-    "$REPO_DIR/" "$INSTALL_DIR/"
-
-# Seed data files on first install only - they hold live user data afterwards.
-mkdir -p "$INSTALL_DIR/data"
-[[ -f "$INSTALL_DIR/data/healthcheck.json" ]] || cp "$REPO_DIR/data/healthcheck.json" "$INSTALL_DIR/data/"
-[[ -f "$INSTALL_DIR/data/feedback.json"    ]] || echo '{}' > "$INSTALL_DIR/data/feedback.json"
-
-# Code read-only, data/ writable by the service user.
-chown -R root:root "$INSTALL_DIR"
-chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/data"
-chmod 750 "$INSTALL_DIR/data"
+sync_app_files
 
 # --------------------------------------------------------------------------
 # systemd service (app listens on loopback only; nginx does SSL offloading)

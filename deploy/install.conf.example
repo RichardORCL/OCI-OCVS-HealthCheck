@@ -3,6 +3,9 @@
 # Copy this file to install.conf (same directory) and adjust the values,
 # then run:  sudo ./install.sh
 #
+# To update an existing installation from git without re-running the full
+# installer:  sudo ./install.sh -update
+#
 # Lines are sourced by bash, so keep the KEY="value" format.
 
 # ---------------------------------------------------------------------------
