@@ -1,6 +1,6 @@
 {
   "title": "OCVS Health Check",
-  "description": "Walk through the health check for Oracle Cloud VMware Solution. Pick a category below or from the top bar, set a status per item and record findings in the comments. Progress is saved automatically in this browser.",
+  "description": "Walk through the health check for Oracle Cloud VMware Solution. Choose a category below or from the top bar, set a status for each item, and record your findings in the comments. Your progress is saved automatically in this browser.<br><br><strong>Data privacy.</strong> No health check results are sent to or stored on the server. Statuses and comments stay on your device in this browser only. To continue on another machine, use <strong>Export results</strong> and <strong>Import results</strong> from the menu. The only information sent to the server is optional feedback on checklist items, which maintainers use to improve the health check.",
   "exportedAt": "2026-07-08T18:50:07.890Z",
   "categories": [
     {
@@ -36,7 +36,11 @@
               "label": "Location of ESXi nodes (Regions, ADs, FDs)",
               "num": "iv."
             }
-          ]
+          ],
+          "commands": [
+            "for id in $(oci search resource structured-search \\\n    --query-text \"query vmwaresddc resources where lifecycleState != 'DELETED'\" \\\n    --raw-output --query 'data.items[].identifier | join(`\\n`, @)'); do\n  sddc_json=$(oci ocvs sddc get --sddc-id \"$id\")\n  sddc_name=$(jq -r '.data.\"display-name\"' <<< \"$sddc_json\")\n  vmware_version=$(jq -r '.data.\"vmware-software-version\"' <<< \"$sddc_json\")\n  compartment_id=$(jq -r '.data.\"compartment-id\"' <<< \"$sddc_json\")\n\n  echo\n  echo \"==============================================================\"\n  echo \"SDDC:                    $sddc_name\"\n  echo \"VMware software version: $vmware_version\"\n  echo \"==============================================================\"\n\n  clusters_json=$(oci ocvs cluster list \\\n    --compartment-id \"$compartment_id\" \\\n    --sddc-id \"$id\" \\\n    --all)\n\n  for cluster_id in $(jq -r '.data.items[].id' <<< \"$clusters_json\"); do\n    cluster_name=$(jq -r --arg cid \"$cluster_id\" \\\n      '.data.items[] | select(.id == $cid) | .\"display-name\"' <<< \"$clusters_json\")\n\n    echo\n    echo \"Cluster: $cluster_name\"\n\n    oci ocvs esxi-host list \\\n      --cluster-id \"$cluster_id\" \\\n      --compartment-id \"$compartment_id\" \\\n      --all |\n    jq -r '\n      [\"display-name\",\"compute-availability-domain\",\"host-shape-name\",\n       \"host-ocpu-count\",\"current-commitment\",\"billing-contract-end-date\",\n       \"vcf-byol-allocation-id\"],\n      (.data.items[] |\n        [ .\"display-name\",\n          .\"compute-availability-domain\",\n          .\"host-shape-name\",\n          .\"host-ocpu-count\",\n          .\"current-commitment\",\n          (.\"billing-contract-end-date\" // \"-\"),\n          (.\"vcf-byol-allocation-id\" // \"-\") ])\n      | @tsv' |\n    column -t -s $'\\t'\n  done\ndone"
+          ],
+          "description": "Below example how to query this information using the OCI Cloud shell"
         },
         {
           "id": "itm-mrc7jkoi-bcrjl",
@@ -461,8 +465,9 @@
               "num": "iii.",
               "label": "What is password expiration set to?",
               "commands": [
-                "chage -l root  (on vCenter console)"
-              ]
+                "chage -l root  "
+              ],
+              "description": "run on the vcenter console"
             }
           ]
         },

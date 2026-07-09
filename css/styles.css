@@ -365,21 +365,50 @@ a:hover { text-decoration: underline; }
 .item-commands {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   margin-top: 5px;
+}
+
+.command-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .item-code {
   display: block;
   font-family: Consolas, "Courier New", monospace;
   font-size: 12.5px;
+  line-height: 1.4;
   background: #f1f0ee;
   border: 1px solid var(--border-light);
   border-radius: 4px;
-  padding: 2px 8px;
+  padding: 8px 10px;
   color: #43413d;
-  word-break: break-all;
+  white-space: pre-wrap;
+  word-break: normal;
+  max-height: calc(1.4em * 10 + 16px);
+  overflow: auto;
+  flex: 1 1 auto;
+  min-width: 0;
 }
+
+.command-copy {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 6px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+}
+
+.command-copy svg { width: 14px; height: 14px; display: block; }
+
+.command-copy:hover { background: #f3f2f0; color: var(--text); }
 
 .item-controls {
   flex: 0 0 auto;
@@ -890,7 +919,25 @@ body.editor-on .edit-controls {
 .command-row {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
+}
+
+.command-row textarea {
+  flex: 1 1 auto;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-width: 0;
+  resize: vertical;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.command-row textarea:focus {
+  outline: 2px solid #9ec2e8;
+  outline-offset: -1px;
 }
 
 .command-row input {

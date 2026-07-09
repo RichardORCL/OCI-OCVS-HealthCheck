@@ -14,8 +14,13 @@
   var DEFAULT_TITLE = "OCVS Health Check";
   var DEFAULT_DESCRIPTION =
     "Walk through the health check for Oracle Cloud VMware Solution. " +
-    "Pick a category below or from the top bar, set a status per item and record findings in the comments. " +
-    "Progress is saved automatically in this browser.";
+    "Choose a category below or from the top bar, set a status for each item, " +
+    "and record your findings in the comments. Your progress is saved automatically in this browser." +
+    "<br><br><strong>Data privacy.</strong> No health check results are sent to or stored on the server. " +
+    "Statuses and comments stay on your device in this browser only. To continue on another machine, " +
+    "use <strong>Export results</strong> and <strong>Import results</strong> from the menu. " +
+    "The only information sent to the server is optional feedback on checklist items, " +
+    "which maintainers use to improve the health check.";
 
   var HEALTHCHECK = null;        // loaded checklist definition
   var editorPassword = sessionStorage.getItem(EDITOR_KEY_SESSION) || "";
@@ -73,6 +78,12 @@
     '<svg viewBox="0 0 16 16" aria-hidden="true">' +
     '<path d="M2.5 3.5A1.5 1.5 0 0 1 4 2h8a1.5 1.5 0 0 1 1.5 1.5v6A1.5 1.5 0 0 1 12 11H8.2L5 13.8V11H4a1.5 1.5 0 0 1-1.5-1.5v-6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>' +
     '<path d="M5.2 5.6h5.6M5.2 7.9h3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>' +
+    "</svg>";
+
+  var COPY_ICON =
+    '<svg viewBox="0 0 16 16" aria-hidden="true">' +
+    '<rect x="5.5" y="5.5" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+    '<path d="M4.5 10.5h-1.5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
     "</svg>";
 
   var STATUSES = [
@@ -349,6 +360,49 @@
     btn.setAttribute("aria-label", label);
     btn.addEventListener("click", onClick);
     return btn;
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy") ? resolve() : reject(new Error("copy failed"));
+      } catch (err) {
+        reject(err);
+      }
+      document.body.removeChild(ta);
+    });
+  }
+
+  function renderCommandBlock(cmd) {
+    var block = el("div", "command-block");
+    var code = el("code", "item-code");
+    code.textContent = cmd;
+    block.appendChild(code);
+
+    var copyBtn = iconBtn("command-copy", COPY_ICON, "Copy command", function () {
+      copyToClipboard(cmd).then(function () {
+        copyBtn.title = "Copied!";
+        copyBtn.setAttribute("aria-label", "Copied!");
+        setTimeout(function () {
+          copyBtn.title = "Copy command";
+          copyBtn.setAttribute("aria-label", "Copy command");
+        }, 2000);
+      }).catch(function () {
+        alert("Could not copy to the clipboard.");
+      });
+    });
+    block.appendChild(copyBtn);
+    return block;
   }
 
   /* Build a label span: HTML when the editor used markup, otherwise linkify URLs. */
@@ -867,7 +921,7 @@
     if (commands.length) {
       var commandsDiv = el("div", "item-commands");
       commands.forEach(function (cmd) {
-        commandsDiv.appendChild(el("code", "item-code", cmd));
+        commandsDiv.appendChild(renderCommandBlock(cmd));
       });
       main.appendChild(commandsDiv);
     }
@@ -1055,9 +1109,9 @@
     var commandsWrap = el("div", "command-rows");
     function addCommandRow(text) {
       var cr = el("div", "command-row");
-      var cmdIn = document.createElement("input");
-      cmdIn.type = "text";
+      var cmdIn = document.createElement("textarea");
       cmdIn.placeholder = "Command example";
+      cmdIn.rows = 6;
       cmdIn.value = text || "";
       cr.appendChild(cmdIn);
       cr.appendChild(iconBtn("edit-btn danger", EDIT_ICONS.remove, "Remove command", function () {
@@ -1078,7 +1132,7 @@
     var addCommandBtn = el("button", "btn small", "+ Add command");
     addCommandBtn.type = "button";
     addCommandBtn.addEventListener("click", function () {
-      addCommandRow("").querySelector("input").focus();
+      addCommandRow("").querySelector("textarea").focus();
     });
     var spacer = el("span", "flex-spacer");
     var saveBtn = el("button", "btn primary small", "Save");
@@ -1123,9 +1177,9 @@
       else delete item.links;
 
       var commands = [];
-      commandsWrap.querySelectorAll(".command-row input").forEach(function (cmdIn) {
-        var cmd = cmdIn.value.trim();
-        if (cmd) commands.push(cmd);
+      commandsWrap.querySelectorAll(".command-row textarea").forEach(function (cmdIn) {
+        var cmd = cmdIn.value.replace(/\r\n/g, "\n");
+        if (cmd.trim()) commands.push(cmd);
       });
       if (commands.length) item.commands = commands;
       else {
