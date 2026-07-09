@@ -62,10 +62,11 @@ The hamburger menu has an **Editor** section. Choosing **Enable editor** asks fo
 
 Checklist edits are saved to the server (written to `data/healthcheck.json`), so they are shared with everyone using the tool - other visitors get the updated checklist when they load or refresh the page. The server verifies the editor password on every save. Statuses and comments remain per browser; use Export/Import to hand results over.
 
-The default password is `ocvs-editor`. To change it, compute the SHA-256 hex digest of your new password (e.g. `node -e "console.log(require('crypto').createHash('sha256').update('newpassword').digest('hex'))"`) and put it in `EDITOR_PASSWORD_HASH` in both `js/app.js` and `server.py`.
+The default password is `ocvs-editor`. To change it, compute the SHA-256 hex digest of your new password (e.g. `node -e "console.log(require('crypto').createHash('sha256').update('newpassword').digest('hex'))"`) and set `editorPasswordHash` in `config.json` (see `config.json.example`).
 
 ## Structure
 
+- `config.json` - editor password hash (copy from `config.json.example` if missing)
 - `index.html` - app shell (top bar, hamburger menu, category navigation, content container, password modal)
 - `css/styles.css` - OCI Console inspired styling
 - `data/healthcheck.json` - the health check checklist definition (categories and items)

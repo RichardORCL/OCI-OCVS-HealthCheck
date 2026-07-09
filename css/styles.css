@@ -346,6 +346,17 @@ a:hover { text-decoration: underline; }
   line-height: 1.45;
 }
 
+.item-desc.rich-text,
+.cat-desc.rich-text,
+.page-header p.rich-text,
+.item-label.rich-text {
+  white-space: normal;
+}
+
+.rich-text a {
+  word-break: break-word;
+}
+
 .item.depth-0 > .item-row .item-label { font-weight: 600; font-size: 15px; }
 
 .item-links { margin-top: 4px; font-size: 13px; }
@@ -522,6 +533,18 @@ a:hover { text-decoration: underline; }
   gap: 16px;
 }
 
+.cat-card-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cat-card-wrap > .cat-card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .cat-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -543,6 +566,17 @@ a:hover { text-decoration: underline; }
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+.cat-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.cat-card-head h2 {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .cat-card .cat-desc {
@@ -908,6 +942,10 @@ body.editor-on .drag-handle {
   cursor: grab;
   color: #c2c0bc;
   padding: 0 3px;
+  flex: 0 0 auto;
+}
+
+body.editor-on .item-row .drag-handle {
   margin-left: -4px;
 }
 
@@ -921,6 +959,11 @@ body.editor-on .drag-handle:active { cursor: grabbing; }
 
 .item-row.drop-above { box-shadow: 0 -3px 0 0 var(--accent); }
 .item-row.drop-below { box-shadow: 0 3px 0 0 var(--accent); }
+
+.cat-card-wrap.dragging > .cat-card { opacity: 0.45; }
+
+.cat-card-wrap.drop-above > .cat-card { box-shadow: 0 -3px 0 0 var(--accent); }
+.cat-card-wrap.drop-below > .cat-card { box-shadow: 0 3px 0 0 var(--accent); }
 
 .cat-card.add-category { display: none; }
 

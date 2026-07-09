@@ -1,4 +1,6 @@
 {
+  "title": "OCVS Health Check",
+  "description": "Walk through the health check for Oracle Cloud VMware Solution. Pick a category below or from the top bar, set a status per item and record findings in the comments. Progress is saved automatically in this browser.",
   "exportedAt": "2026-07-08T18:50:07.890Z",
   "categories": [
     {
@@ -351,6 +353,79 @@
       ]
     },
     {
+      "id": "monitoring",
+      "route": "monitoring",
+      "title": "OCI Monitoring / Management Integration",
+      "short": "Monitoring",
+      "description": "Notifications, the OCVS Management appliance, Log Analytics and vCenter alarm integration.",
+      "items": [
+        {
+          "id": "mon-a",
+          "num": "a.",
+          "label": "Are notifications for OCVS set up?",
+          "children": [
+            {
+              "id": "mon-a-i",
+              "num": "i.",
+              "label": "What is the topic setup and who is subscribed?"
+            }
+          ]
+        },
+        {
+          "id": "mon-b",
+          "num": "b.",
+          "label": "Is the OCVS Management appliance installed and configured?",
+          "links": [
+            {
+              "text": "OCVS Management Appliance documentation",
+              "url": "https://docs.oracle.com/en-us/iaas/Content/VMware/Tasks/ocvs-management-app.htm"
+            }
+          ]
+        },
+        {
+          "id": "mon-c",
+          "num": "c.",
+          "label": "Is Log Analytics configured to monitor critical OCVS alarms?",
+          "links": [
+            {
+              "text": "VMware Monitoring Solution in Log Analytics",
+              "url": "https://docs.oracle.com/en-us/iaas/log-analytics/doc/vmware-monitoring-solution.html"
+            }
+          ]
+        },
+        {
+          "id": "mon-d",
+          "num": "d.",
+          "label": "Are critical vCenter alarms being monitored?",
+          "children": [
+            {
+              "id": "mon-d-i",
+              "num": "i.",
+              "label": "Is customer aware this can be integrated with OCI Notifications?",
+              "links": [
+                {
+                  "text": "vCenter to OCI Notifications (oracle-devrel on GitHub)",
+                  "url": "https://github.com/oracle-devrel/technology-engineering/tree/main/cloud-infrastructure/virtualization-solutions/oracle-cloud-vmware-solution/vcenter-to-oci-notifications/files"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "itm-mrcf4u72-pw4rt",
+          "label": "Are possible maintenance events monitored? (Via notifications?)",
+          "num": "e.",
+          "links": [
+            {
+              "text": "Infrastructure Health Metrics",
+              "url": "https://docs.oracle.com/en-us/iaas/Content/Compute/References/infrastructurehealthmetrics.htm"
+            }
+          ],
+          "description": "oci_compute_infrastructure_health being monitored for OCVS compartment"
+        }
+      ]
+    },
+    {
       "id": "troubleshooting",
       "route": "troubleshooting",
       "title": "Troubleshooting Processes",
@@ -433,79 +508,6 @@
           "id": "tro-d",
           "num": "d.",
           "label": "Can the OCVS admin create Oracle Support tickets? (Or know what the process is to get a support ticket generated)"
-        }
-      ]
-    },
-    {
-      "id": "monitoring",
-      "route": "monitoring",
-      "title": "OCI Monitoring / Management Integration",
-      "short": "Monitoring",
-      "description": "Notifications, the OCVS Management appliance, Log Analytics and vCenter alarm integration.",
-      "items": [
-        {
-          "id": "mon-a",
-          "num": "a.",
-          "label": "Are notifications for OCVS set up?",
-          "children": [
-            {
-              "id": "mon-a-i",
-              "num": "i.",
-              "label": "What is the topic setup and who is subscribed?"
-            }
-          ]
-        },
-        {
-          "id": "mon-b",
-          "num": "b.",
-          "label": "Is the OCVS Management appliance installed and configured?",
-          "links": [
-            {
-              "text": "OCVS Management Appliance documentation",
-              "url": "https://docs.oracle.com/en-us/iaas/Content/VMware/Tasks/ocvs-management-app.htm"
-            }
-          ]
-        },
-        {
-          "id": "mon-c",
-          "num": "c.",
-          "label": "Is Log Analytics configured to monitor critical OCVS alarms?",
-          "links": [
-            {
-              "text": "VMware Monitoring Solution in Log Analytics",
-              "url": "https://docs.oracle.com/en-us/iaas/log-analytics/doc/vmware-monitoring-solution.html"
-            }
-          ]
-        },
-        {
-          "id": "mon-d",
-          "num": "d.",
-          "label": "Are critical vCenter alarms being monitored?",
-          "children": [
-            {
-              "id": "mon-d-i",
-              "num": "i.",
-              "label": "Is customer aware this can be integrated with OCI Notifications?",
-              "links": [
-                {
-                  "text": "vCenter to OCI Notifications (oracle-devrel on GitHub)",
-                  "url": "https://github.com/oracle-devrel/technology-engineering/tree/main/cloud-infrastructure/virtualization-solutions/oracle-cloud-vmware-solution/vcenter-to-oci-notifications/files"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "id": "itm-mrcf4u72-pw4rt",
-          "label": "Are possible maintenance events monitored? (Via notifications?)",
-          "num": "e.",
-          "links": [
-            {
-              "text": "Infrastructure Health Metrics",
-              "url": "https://docs.oracle.com/en-us/iaas/Content/Compute/References/infrastructurehealthmetrics.htm"
-            }
-          ],
-          "description": "oci_compute_infrastructure_health being monitored for OCVS compartment"
         }
       ]
     },

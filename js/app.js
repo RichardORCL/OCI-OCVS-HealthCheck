@@ -10,10 +10,12 @@
   var DATA_URL = "data/healthcheck.json";
   var SAVE_URL = "api/checklist";
   var FEEDBACK_URL = "api/feedback";
-
-  // SHA-256 of the editor password ("ocvs-editor" by default). To change the
-  // password, put the SHA-256 hex digest of the new one here AND in server.py.
-  var EDITOR_PASSWORD_HASH = "daf02459820e86900ff15570b3d53a1726bd2258c1682aff02517edd61d70b9e";
+  var VERIFY_URL = "api/editor/verify";
+  var DEFAULT_TITLE = "OCVS Health Check";
+  var DEFAULT_DESCRIPTION =
+    "Walk through the health check for Oracle Cloud VMware Solution. " +
+    "Pick a category below or from the top bar, set a status per item and record findings in the comments. " +
+    "Progress is saved automatically in this browser.";
 
   var HEALTHCHECK = null;        // loaded checklist definition
   var editorPassword = sessionStorage.getItem(EDITOR_KEY_SESSION) || "";
@@ -245,6 +247,8 @@
 
   function normalizeChecklist(data) {
     if (!data || !Array.isArray(data.categories)) return;
+    if (typeof data.title !== "string" || !data.title.trim()) data.title = DEFAULT_TITLE;
+    if (typeof data.description !== "string") data.description = DEFAULT_DESCRIPTION;
     data.categories.forEach(function (cat) {
       if (cat.items) cat.items.forEach(normalizeItem);
     });
@@ -319,6 +323,24 @@
     return node;
   }
 
+  function plainTextFromHtml(html) {
+    if (!html) return "";
+    var tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || "";
+  }
+
+  function looksLikeHtml(text) {
+    return /<\s*\/?\s*[a-zA-Z][^>]*>/.test(text) ||
+      /&lt;\s*\/?\s*[a-zA-Z][^&]*&gt;/i.test(text);
+  }
+
+  function elHtml(tag, className, html) {
+    var node = el(tag, className);
+    if (html) node.innerHTML = html;
+    return node;
+  }
+
   function iconBtn(cls, icon, label, onClick) {
     var btn = el("button", cls);
     btn.type = "button";
@@ -329,7 +351,14 @@
     return btn;
   }
 
-  /* Build a label span with any URLs in the text turned into clickable links. */
+  /* Build a label span: HTML when the editor used markup, otherwise linkify URLs. */
+  function renderItemLabel(text) {
+    if (looksLikeHtml(text)) {
+      return elHtml("span", "item-label rich-text", text);
+    }
+    return linkifyLabel(text);
+  }
+
   function linkifyLabel(text) {
     var span = el("span", "item-label");
     var re = /https?:\/\/[^\s]+/g;
@@ -362,7 +391,7 @@
     HEALTHCHECK.categories.forEach(function (cat) {
       var link = el("a", cat.route === activeRoute ? "active" : "");
       link.href = "#/" + cat.route;
-      link.appendChild(document.createTextNode(cat.short || cat.title));
+      link.appendChild(document.createTextNode(plainTextFromHtml(cat.short || cat.title)));
 
       var counts = categoryCounts(cat);
       if (counts.attn > 0) {
@@ -379,6 +408,13 @@
     var pct = counts.total ? Math.round((counts.done / counts.total) * 100) : 0;
     document.getElementById("topbar-progress-fill").style.width = pct + "%";
     document.getElementById("topbar-progress-label").textContent = pct + "%";
+  }
+
+  function updateSiteTitle() {
+    if (!HEALTHCHECK) return;
+    var title = plainTextFromHtml(HEALTHCHECK.title || DEFAULT_TITLE);
+    document.getElementById("topbar-title").textContent = title;
+    document.title = title;
   }
 
   /* ------------------------------ Feedback ---------------------------- */
@@ -430,7 +466,7 @@
     var body = popup.body;
 
     body.appendChild(el("p", "", "Your feedback about this checklist topic is sent to the maintainers of the health check. It is not shown to other users."));
-    body.appendChild(el("div", "feedback-item-ref", item.label));
+    body.appendChild(el("div", "feedback-item-ref", plainTextFromHtml(item.label)));
 
     var textarea = document.createElement("textarea");
     textarea.className = "feedback-input";
@@ -522,7 +558,7 @@
   function openFeedbackViewer(item) {
     var popup = openPopup("Feedback");
     var body = popup.body;
-    body.appendChild(el("div", "feedback-item-ref", item.label));
+    body.appendChild(el("div", "feedback-item-ref", plainTextFromHtml(item.label)));
 
     var list = el("div", "feedback-list");
     var emptyMsg = el("p", "", "No feedback for this item.");
@@ -604,7 +640,8 @@
 
         var refEl = el("div", "feedback-item-ref");
         if (ref) {
-          var link = el("a", "", ref.cat.title + " \u203a " + (ref.item.num ? ref.item.num + " " : "") + ref.item.label);
+          var link = el("a", "", plainTextFromHtml(ref.cat.title) + " \u203a " +
+            (ref.item.num ? ref.item.num + " " : "") + plainTextFromHtml(ref.item.label));
           link.href = "#/" + ref.cat.route;
           refEl.appendChild(link);
         } else {
@@ -658,6 +695,7 @@
   /* --------------------------- Checklist item ------------------------- */
 
   var dragId = null; // id of the item currently being dragged
+  var dragCatRoute = null; // route of the category card currently being dragged
 
   function clearDropMarkers() {
     document.querySelectorAll(".drop-above, .drop-below").forEach(function (n) {
@@ -668,6 +706,9 @@
   // If a grip was pressed but no drag happened, make the item non-draggable again.
   document.addEventListener("mouseup", function () {
     document.querySelectorAll('.item[draggable="true"]').forEach(function (n) {
+      if (!n.classList.contains("dragging")) n.removeAttribute("draggable");
+    });
+    document.querySelectorAll('.cat-card-wrap[draggable="true"]').forEach(function (n) {
       if (!n.classList.contains("dragging")) n.removeAttribute("draggable");
     });
   });
@@ -741,6 +782,70 @@
     });
   }
 
+  /* Reorder category cards on the overview page (editor mode). */
+  function attachCategoryDragHandlers(wrap, cat) {
+    var handle = el("span", "drag-handle");
+    handle.innerHTML = DRAG_ICON;
+    handle.title = "Drag to reorder";
+    handle.addEventListener("mousedown", function () {
+      wrap.setAttribute("draggable", "true");
+    });
+    wrap.insertBefore(handle, wrap.firstChild);
+
+    function isBelow(ev) {
+      var rect = wrap.getBoundingClientRect();
+      return ev.clientY > rect.top + rect.height / 2;
+    }
+
+    wrap.addEventListener("dragstart", function (ev) {
+      ev.stopPropagation();
+      dragCatRoute = cat.route;
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = "move";
+        try { ev.dataTransfer.setData("text/plain", cat.route); } catch (e) { /* IE */ }
+      }
+      wrap.classList.add("dragging");
+    });
+
+    wrap.addEventListener("dragend", function (ev) {
+      ev.stopPropagation();
+      wrap.classList.remove("dragging");
+      wrap.removeAttribute("draggable");
+      dragCatRoute = null;
+      clearDropMarkers();
+    });
+
+    wrap.addEventListener("dragover", function (ev) {
+      if (!dragCatRoute || dragCatRoute === cat.route) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
+      clearDropMarkers();
+      wrap.classList.add(isBelow(ev) ? "drop-below" : "drop-above");
+    });
+
+    wrap.addEventListener("dragleave", function () {
+      wrap.classList.remove("drop-above", "drop-below");
+    });
+
+    wrap.addEventListener("drop", function (ev) {
+      if (!dragCatRoute || dragCatRoute === cat.route) return;
+      var cats = HEALTHCHECK.categories;
+      var fromCat = findCategory(dragCatRoute);
+      clearDropMarkers();
+      if (!fromCat) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var below = isBelow(ev);
+      var moved = cats.splice(cats.indexOf(fromCat), 1)[0];
+      var insertAt = cats.indexOf(cat) + (below ? 1 : 0);
+      cats.splice(insertAt, 0, moved);
+      dragCatRoute = null;
+      saveData();
+      route();
+    });
+  }
+
   function renderItem(item, depth) {
     var st = getItemState(item.id);
 
@@ -752,10 +857,10 @@
     row.appendChild(el("span", "item-num", item.num || ""));
 
     var main = el("div", "item-main");
-    main.appendChild(linkifyLabel(item.label));
+    main.appendChild(renderItemLabel(item.label));
 
     if (item.description) {
-      main.appendChild(el("div", "item-desc", item.description));
+      main.appendChild(elHtml("div", "item-desc rich-text", item.description));
     }
 
     var commands = itemCommands(item);
@@ -770,7 +875,8 @@
     if (item.links) {
       var linksDiv = el("div", "item-links");
       item.links.forEach(function (l) {
-        var a = el("a", "", l.text);
+        var a = el("a");
+        a.innerHTML = l.text || l.url;
         a.href = l.url;
         a.target = "_blank";
         a.rel = "noopener noreferrer";
@@ -866,8 +972,8 @@
     editControls.appendChild(iconBtn("edit-btn danger", EDIT_ICONS.remove, "Remove item", function () {
       var count = item.children ? flattenItems([item]).length : 1;
       var msg = count > 1
-        ? 'Remove "' + item.label + '" and its ' + (count - 1) + " sub-item(s)?"
-        : 'Remove "' + item.label + '"?';
+        ? 'Remove "' + plainTextFromHtml(item.label) + '" and its ' + (count - 1) + " sub-item(s)?"
+        : 'Remove "' + plainTextFromHtml(item.label) + '"?';
       if (!confirm(msg)) return;
       var ref = findItemRef(item.id);
       if (ref) {
@@ -1054,14 +1160,14 @@
 
     var header = el("div", "page-header");
     var titleRow = el("div", "page-title-row");
-    titleRow.appendChild(el("h1", "", cat.title));
+    titleRow.appendChild(elHtml("h1", "", cat.title));
 
     var catActions = el("span", "edit-controls");
     catActions.appendChild(iconBtn("edit-btn", EDIT_ICONS.edit, "Edit category", function () {
       openCategoryEdit(header, cat);
     }));
     catActions.appendChild(iconBtn("edit-btn danger", EDIT_ICONS.remove, "Delete category", function () {
-      if (!confirm('Delete the category "' + cat.title + '" and all its items?')) return;
+      if (!confirm('Delete the category "' + plainTextFromHtml(cat.title) + '" and all its items?')) return;
       var idx = HEALTHCHECK.categories.indexOf(cat);
       if (idx >= 0) {
         HEALTHCHECK.categories.splice(idx, 1);
@@ -1072,7 +1178,7 @@
     titleRow.appendChild(catActions);
     header.appendChild(titleRow);
 
-    header.appendChild(el("p", "", cat.description || ""));
+    header.appendChild(elHtml("p", "rich-text", cat.description || ""));
     header.appendChild(buildPillRow(categoryCounts(cat)));
     content.appendChild(header);
 
@@ -1144,6 +1250,43 @@
     cancelBtn.addEventListener("click", function () { editor.remove(); });
   }
 
+  /* Inline editing of overview title + description. */
+  function openOverviewEdit(header) {
+    if (header.querySelector(".inline-edit")) return;
+
+    var editor = el("div", "inline-edit category-edit");
+    var titleInput = document.createElement("input");
+    titleInput.type = "text";
+    titleInput.value = HEALTHCHECK.title || DEFAULT_TITLE;
+    titleInput.placeholder = "Overview title";
+    var descInput = document.createElement("textarea");
+    descInput.value = HEALTHCHECK.description || DEFAULT_DESCRIPTION;
+    descInput.placeholder = "Overview description";
+    descInput.rows = 3;
+
+    editor.appendChild(titleInput);
+    editor.appendChild(descInput);
+
+    var actions = el("div", "inline-edit-actions");
+    var saveBtn = el("button", "btn primary small", "Save");
+    saveBtn.type = "button";
+    var cancelBtn = el("button", "btn small", "Cancel");
+    cancelBtn.type = "button";
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    editor.appendChild(actions);
+    header.insertBefore(editor, header.firstChild);
+    titleInput.focus();
+
+    saveBtn.addEventListener("click", function () {
+      if (titleInput.value.trim()) HEALTHCHECK.title = titleInput.value.trim();
+      HEALTHCHECK.description = descInput.value.trim();
+      saveData();
+      route();
+    });
+    cancelBtn.addEventListener("click", function () { editor.remove(); });
+  }
+
   function openPendingEdit() {
     if (!pendingEditId) return;
     var id = pendingEditId;
@@ -1179,22 +1322,31 @@
     content.innerHTML = "";
 
     var header = el("div", "page-header");
-    header.appendChild(el("h1", "", "OCVS Health Check"));
-    header.appendChild(el("p", "",
-      "Walk through the health check for Oracle Cloud VMware Solution. " +
-      "Pick a category below or from the top bar, set a status per item and record findings in the comments. " +
-      "Progress is saved automatically in this browser."));
+    var titleRow = el("div", "page-title-row");
+    titleRow.appendChild(elHtml("h1", "", HEALTHCHECK.title || DEFAULT_TITLE));
+
+    var overviewActions = el("span", "edit-controls");
+    overviewActions.appendChild(iconBtn("edit-btn", EDIT_ICONS.edit, "Edit overview", function () {
+      openOverviewEdit(header);
+    }));
+    titleRow.appendChild(overviewActions);
+    header.appendChild(titleRow);
+
+    header.appendChild(elHtml("p", "rich-text", HEALTHCHECK.description || DEFAULT_DESCRIPTION));
     header.appendChild(buildPillRow(overallCounts()));
     content.appendChild(header);
 
     var grid = el("div", "overview-grid");
     HEALTHCHECK.categories.forEach(function (cat) {
       var counts = categoryCounts(cat);
+      var wrap = el("div", "cat-card-wrap");
       var card = el("a", "cat-card");
       card.href = "#/" + cat.route;
 
-      card.appendChild(el("h2", "", cat.title));
-      card.appendChild(el("div", "cat-desc", cat.description || ""));
+      var head = el("div", "cat-card-head");
+      head.appendChild(elHtml("h2", "", cat.title));
+      card.appendChild(head);
+      card.appendChild(elHtml("div", "cat-desc rich-text", cat.description || ""));
 
       var track = el("div", "cat-progress-track");
       ["done", "wip", "attn"].forEach(function (key) {
@@ -1207,7 +1359,9 @@
       card.appendChild(track);
 
       card.appendChild(buildPillRow(counts));
-      grid.appendChild(card);
+      wrap.appendChild(card);
+      if (editorEnabled) attachCategoryDragHandlers(wrap, cat);
+      grid.appendChild(wrap);
     });
 
     // Editor-only: add category card
@@ -1300,72 +1454,6 @@
 
   /* ------------------------------ Editor mode ------------------------- */
 
-  /* Pure-JS SHA-256, used when Web Crypto is unavailable (the site served
-     over plain http from another machine is not a "secure context"). */
-  function sha256hexSync(str) {
-    var K = [
-      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-    ];
-    var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
-
-    var bytes = Array.prototype.slice.call(new TextEncoder().encode(str));
-    var bitLen = bytes.length * 8;
-    bytes.push(0x80);
-    while (bytes.length % 64 !== 56) bytes.push(0);
-    for (var i = 7; i >= 0; i--) bytes.push((bitLen / Math.pow(2, i * 8)) & 0xff);
-
-    function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
-
-    for (var off = 0; off < bytes.length; off += 64) {
-      var w = new Array(64);
-      for (var t = 0; t < 16; t++) {
-        w[t] = (bytes[off + t * 4] << 24) | (bytes[off + t * 4 + 1] << 16) |
-               (bytes[off + t * 4 + 2] << 8) | bytes[off + t * 4 + 3];
-      }
-      for (t = 16; t < 64; t++) {
-        var s0 = rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
-        var s1 = rotr(w[t - 2], 17) ^ rotr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
-        w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
-      }
-      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
-      for (t = 0; t < 64; t++) {
-        var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-        var ch = (e & f) ^ (~e & g);
-        var temp1 = (h + S1 + ch + K[t] + w[t]) | 0;
-        var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-        var maj = (a & b) ^ (a & c) ^ (b & c);
-        var temp2 = (S0 + maj) | 0;
-        h = g; g = f; f = e; e = (d + temp1) | 0;
-        d = c; c = b; b = a; a = (temp1 + temp2) | 0;
-      }
-      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
-      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
-    }
-    return H.map(function (x) { return (x >>> 0).toString(16).padStart(8, "0"); }).join("");
-  }
-
-  function sha256hex(str) {
-    if (window.crypto && window.crypto.subtle) {
-      return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function (buf) {
-        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
-          return b.toString(16).padStart(2, "0");
-        }).join("");
-      });
-    }
-    try {
-      return Promise.resolve(sha256hexSync(str));
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }
-
   function setEditorEnabled(on, password) {
     editorEnabled = on;
     editorPassword = on ? (password || "") : "";
@@ -1425,17 +1513,25 @@
 
     function submit() {
       var password = input.value;
-      sha256hex(password).then(function (hash) {
-        if (hash === EDITOR_PASSWORD_HASH) {
+      fetch(VERIFY_URL, {
+        method: "POST",
+        headers: { "X-Editor-Password": password }
+      }).then(function (res) {
+        if (res.ok) {
           closeEditorModal();
           setEditorEnabled(true, password);
           migrateLegacyEdits();
-        } else {
+        } else if (res.status === 403) {
           error.hidden = false;
           input.select();
+        } else {
+          throw new Error("HTTP " + res.status);
         }
-      }).catch(function () {
-        alert("Could not verify the password in this browser.");
+      }).catch(function (err) {
+        alert(
+          "Could not verify the editor password (" + (err.message || err) + ").\n\n" +
+          "Make sure the site is running via \"python server.py\" (not a plain static file server)."
+        );
       });
     }
 
@@ -1575,6 +1671,7 @@
     var cat = findCategory(r);
     renderNav(cat ? cat.route : "");
     renderTopbarProgress();
+    updateSiteTitle();
     if (cat) {
       renderCategoryPage(cat);
     } else if (r === "feedback" && editorEnabled) {

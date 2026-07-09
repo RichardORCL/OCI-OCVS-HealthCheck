@@ -1,6 +1,8 @@
 """OCVS Health Check server.
 
 Serves the static site and persists shared data:
+- POST /api/editor/verify (editor password required) checks the password
+  before the browser enables editor mode.
 - POST /api/checklist  (editor password required) writes the checklist
   definition to data/healthcheck.json, so edits are shared with everyone.
 - POST /api/feedback   (open to everyone) stores anonymous feedback about a
@@ -9,6 +11,8 @@ Serves the static site and persists shared data:
 - DELETE /api/feedback (editor password required) removes one feedback entry.
   data/feedback.json itself is never served, so feedback stays invisible
   to regular users.
+
+Editor password hash is read from config.json (see config.json.example).
 
 Usage:  python server.py [port] [host]      (default port 8080, host 0.0.0.0)
 """
@@ -24,11 +28,27 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+CONFIG_FILE = ROOT / "config.json"
 DATA_FILE = ROOT / "data" / "healthcheck.json"
 FEEDBACK_FILE = ROOT / "data" / "feedback.json"
 
-# SHA-256 of the editor password. Must match EDITOR_PASSWORD_HASH in js/app.js.
-EDITOR_PASSWORD_HASH = "daf02459820e86900ff15570b3d53a1726bd2258c1682aff02517edd61d70b9e"
+
+def load_editor_password_hash():
+    try:
+        data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        password_hash = data.get("editorPasswordHash")
+        if isinstance(password_hash, str) and password_hash:
+            return password_hash
+    except (OSError, json.JSONDecodeError, AttributeError):
+        pass
+    raise SystemExit(
+        f"Missing or invalid editorPasswordHash in {CONFIG_FILE}. "
+        f"Copy config.json.example to config.json and set the SHA-256 hex digest "
+        f"of your editor password."
+    )
+
+
+EDITOR_PASSWORD_HASH = load_editor_password_hash()
 
 MAX_FEEDBACK_LENGTH = 5000
 USER_TEXT_ERROR = (
@@ -116,6 +136,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = self._clean_path()
+        if path == "/config.json":
+            self.send_error(403, "Configuration is not publicly available")
+            return
         if path == "/data/feedback.json":
             self.send_error(403, "Feedback is only available through the editor")
             return
@@ -128,7 +151,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_HEAD(self):
-        if self._clean_path() == "/data/feedback.json":
+        path = self._clean_path()
+        if path in ("/config.json", "/data/feedback.json"):
             self.send_error(403)
             return
         super().do_HEAD()
@@ -137,12 +161,21 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = self._clean_path()
-        if path == "/api/checklist":
+        if path == "/api/editor/verify":
+            self._post_editor_verify()
+        elif path == "/api/checklist":
             self._post_checklist()
         elif path == "/api/feedback":
             self._post_feedback()
         else:
             self.send_error(404)
+
+    def _post_editor_verify(self):
+        if self._editor_authorized():
+            self.send_response(204)
+            self.end_headers()
+        else:
+            self.send_error(403, "Invalid editor password")
 
     def _post_checklist(self):
         if not self._editor_authorized():
